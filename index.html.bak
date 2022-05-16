@@ -124,6 +124,14 @@ function saveFile(directory,encoding,data) {
 	}));
 	window.fileThing = function (json) {window.fileThing = function (json) {};}
 }
+function goToDir(gdir) {
+	if (document.getElementById("directory").value[document.getElementById("directory").value.length-1] == "/" || document.getElementById("directory").value[document.getElementById("directory").value.length-1] == "\\") {
+		document.getElementById("directory").value = document.getElementById("directory").value.concat(gdir);
+	} else {
+		document.getElementById("directory").value = document.getElementById("directory").value.concat(gdir.concat("/"));
+	}
+	document.getElementById("directory").onchange();
+}
 reconnect()
 var dir = "";
 document.getElementById("send").onclick = function () {
@@ -182,13 +190,28 @@ function updateDirectorys() {
 	document.getElementById("fileData").innerHTML = "";
 	getDir("./", function (data) {
 		var index = 0;
+		var p = document.createElement("p");
+		p.innerHTML = "<h1>"+dir+"</h1><br>";
+		document.getElementById("fileData").appendChild(p);
+		var p = document.createElement("p");
+		p.innerHTML = "go back directory";
+		p.setAttribute("class","file");
+		p.onclick = function () {
+			var file = this.getAttribute("file");
+			goToDir("../");
+		};
+		document.getElementById("fileData").appendChild(p);
 		while (index < data.length) {
 			var p = document.createElement("p");
+			p.setAttribute("file", data[index]);
 			if (checkIsDir(data[index])) {
 				p.innerHTML = "directory: "+data[index]+"<br>";
+				p.onclick = function () {
+					var file = this.getAttribute("file");
+					goToDir(file);
+				};
 			} else {
-				p.innerHTML = data[index]+"<br>";
-				p.setAttribute("file", data[index]);
+				p.innerHTML = "file: "+data[index]+"<br>";
 				p.onclick = function () {
 					var file = this.getAttribute("file");
 					getFile(file,"base64",function (data) {
@@ -199,9 +222,8 @@ function updateDirectorys() {
 					})
 				};	
 				//p.style.color = "blue";
-				p.setAttribute("class","file");
 			}
-			
+			p.setAttribute("class","file");
 			document.getElementById("fileData").appendChild(p);
 			index += 1;
 		}
@@ -216,6 +238,12 @@ function uploadFile() {
 			var string = reader.result.split(base64Start);
 			saveFile(file.name,"base64",string.slice(1,string.length).join(""))
 		};
+		setTimeout(() => {
+			terminalServer.send(JSON.stringify({
+				command:"setDir",
+				value:document.getElementById("directory").value
+			}));
+		},500)
 		reader.readAsDataURL(this.files[0])
 	}
 }

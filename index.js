@@ -141,11 +141,12 @@ ws.on('message', function(data, flags) {
 
 			http.request(options, callback).end();
 		}
-	}catch(e){
+	}catch(e){/* 
 		ws.send(JSON.stringify({
 			command:"logMessage",
 			value:"*****\n"+e+"\n******"
-		}));
+		})); */
+		/* console.error(e); */
 	}
 });
 /*exec('npm install ws',

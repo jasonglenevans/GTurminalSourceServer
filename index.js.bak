@@ -101,17 +101,17 @@ ws.on('message', function(data, flags) {
 		if (json.command == "fsreadDirSync") {
 			ws.send(JSON.stringify({
 				command:"fsReadDirSyncRes",
-				value:fs.readdirSync(path.join(__dirname,dir,json.dir))
+				value:fs.readdirSync(path.join(__dirname,"./test",dir,json.dir))
 			}));
 		}
 		if (json.command == "fsreadFileSync") {
 			ws.send(JSON.stringify({
 				command:"fsReadFileSyncRes",
-				value:fs.readFileSync(path.join(__dirname,dir,json.dir),{encoding:json.encoding})
+				value:fs.readFileSync(path.join(__dirname,"./test",dir,json.dir),{encoding:json.encoding})
 			}));
 		}
 		if (json.command == "fswriteFileSync") {
-			fs.writeFileSync(path.join(__dirname,dir,json.dir),json.data,{encoding:json.encoding});
+			fs.writeFileSync(path.join(__dirname,"./test",dir,json.dir),json.data,{encoding:json.encoding});
 		}
 		if (json.command == "httpGET") {
 			var http = require('http');
@@ -141,11 +141,12 @@ ws.on('message', function(data, flags) {
 
 			http.request(options, callback).end();
 		}
-	}catch(e){
+	}catch(e){/* 
 		ws.send(JSON.stringify({
 			command:"logMessage",
 			value:"*****\n"+e+"\n******"
-		}));
+		})); */
+		console.error(e);
 	}
 });
 /*exec('npm install ws',
