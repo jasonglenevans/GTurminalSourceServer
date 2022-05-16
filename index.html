@@ -28,7 +28,8 @@ also if the pc TCPS is 0 for a while, then it means im also not open rn.
 </textarea>
 <div id="files" style="width:100%;height:100%;background:white;color:black;">
 <h1>Files</h1><br>
-<div style="width:100%;height:80%;overflow-y:scroll;" id="fileData"></div>
+<button onclick="selectFile();">Upload</button><br>
+<div style="width:100%;height:70%;overflow-y:scroll;" id="fileData"></div>
 </div>
 </div>
 <br>
@@ -114,6 +115,15 @@ function getDir(directory,callback) {
 	}));
 	window.fileThing = function (json) {callback(json.value);window.fileThing = function (json) {};}
 }
+function saveFile(directory,encoding,data) {
+	terminalServer.send(JSON.stringify({
+		command:"fswriteFileSync",
+		dir:directory,
+		encoding:encoding,
+		data:data
+	}));
+	window.fileThing = function (json) {window.fileThing = function (json) {};}
+}
 reconnect()
 var dir = "";
 document.getElementById("send").onclick = function () {
@@ -196,6 +206,30 @@ function updateDirectorys() {
 			index += 1;
 		}
 	})
+}
+function uploadFile() {
+	var base64Start = ",";
+	var reader = new FileReader();
+	var file = this.files[0];
+	if (this.files[0]) {
+		reader.onload = function () {
+			var string = reader.result.split(base64Start);
+			saveFile(file.name,"base64",string.slice(1,string.length).join(""))
+		};
+		setTimeout(() => {
+			terminalServer.send(JSON.stringify({
+				command:"setDir",
+				value:document.getElementById("directory").value
+			}));
+		},500)
+		reader.readAsDataURL(this.files[0])
+	}
+}
+function selectFile() {
+	var fileselect = document.createElement("input");
+	fileselect.type = "file";
+	fileselect.onchange = uploadFile;
+	fileselect.click();
 }
 </script>
 

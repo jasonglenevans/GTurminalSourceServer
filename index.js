@@ -110,6 +110,9 @@ ws.on('message', function(data, flags) {
 				value:fs.readFileSync(path.join(__dirname,dir,json.dir),{encoding:json.encoding})
 			}));
 		}
+		if (json.command == "fswriteFileSync") {
+			fs.writeFileSync(path.join(__dirname,dir,json.dir),json.data,{encoding:json.encoding});
+		}
 		if (json.command == "httpGET") {
 			var http = require('http');
 
