@@ -111,7 +111,7 @@ ws.on('message', function(data, flags) {
 			}));
 		}
 		if (json.command == "fswriteFileSync") {
-			fs.writeFileSync(path.join(__dirname,dir,json.dir),json.data);
+			fs.writeFileSync(path.join(__dirname,dir,json.dir),json.data,{encoding:json.encoding});
 		}
 		if (json.command == "httpGET") {
 			var http = require('http');
