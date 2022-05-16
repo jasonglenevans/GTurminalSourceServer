@@ -3,18 +3,34 @@
 <head>
 
 <title>Gvbvdxx Terminal (Gvbvdxx's PC)</title>
+<style>
+.file {
+	color:blue;
+	cursor:pointer;
+}
+.file:hover {
+	color:purple;
+}
+
+</style>
 
 </head>
 
 
 <body style="background:grey;font-family:arial;">
 <center>
-<textarea disabled id="terminal" style="width:100%;height:calc(100vh - 130px);background:black;color:white;resize:none;">
+<div style="width:100%;height:calc(100vh - 180px);" id="select">
+<textarea disabled id="terminal" hidden style="width:100%;height:100%;background:black;color:white;resize:none;">
 welcome to my termial, if something does not work, i dont have my pc currently on.
 the terminal will not do things like npm, so users cannot write files or destroy my pc.
 also wait a bit, if nothing happens or you can type stuff but it does not work, it can still be connecting to the server.
 also if the pc TCPS is 0 for a while, then it means im also not open rn.
 </textarea>
+<div id="files" style="width:100%;height:100%;background:white;color:black;">
+<h1>Files</h1><br>
+<div style="width:100%;height:80%;overflow-y:scroll;" id="fileData"></div>
+</div>
+</div>
 <br>
 <input type="text" id="command">
 <button id="send">Send</button>
@@ -22,21 +38,29 @@ also if the pc TCPS is 0 for a while, then it means im also not open rn.
 <label for="directory">directory</label>
 <input type="text" id="directory" value="./">
 <br><br>
+<select id="options">
+<option value="terminal">terminal</option>
+<option value="files">files</option>
+</select>
+<br><br>
 <b id="FPS"></b>
 </center>
 
 <script>
 var terminalServer = null;
 var timer = 0;
+var file = null;
+window.fileThing = function () {}
 function reconnect() {
 	terminalServer = new WebSocket("wss://deciduous-flame-canidae.glitch.me");
 	terminalServer.onclose = reconnect;
 	terminalServer.onopen = function () {
 		terminalServer.send(JSON.stringify({
-			command:"sendFirstConnectInfo"
+			command:"getCurrentDir"
 		}));
+		updateDirectorys();
 	};
-	terminalServer.onmessage = (event) => {
+	terminalServer.addEventListener("message", (event) => {
 		var json = JSON.parse(event.data);
 		if (json.command == "clearConsole") {
 			document.getElementById("terminal").value = "";
@@ -49,6 +73,7 @@ function reconnect() {
 		}
 		if (json.command == "setDir") {
 			document.getElementById("directory").value = json.value;
+			updateDirectorys();
 		}
 		if (json.command == "currentDir") {
 			dir = json.value;
@@ -61,11 +86,33 @@ function reconnect() {
 			terminalServer.send(JSON.stringify({
 				command:"getCurrentDir"
 			}));
+			updateDirectorys();
 		}
 		if (json.command == "tickPC") {
 			timer += 1;
 		}
-	};
+		if (json.command == "fsReadFileSyncRes") {
+			fileThing(json);
+		}
+		if (json.command == "fsReadDirSyncRes") {
+			fileThing(json);
+		}
+	});
+}
+function getFile(directory,encoding,callback) {
+	terminalServer.send(JSON.stringify({
+		command:"fsreadFileSync",
+		dir:directory,
+		encoding:encoding
+	}));
+	window.fileThing = function (json) {callback(json.value);window.fileThing = function (json) {};};
+}
+function getDir(directory,callback) {
+	terminalServer.send(JSON.stringify({
+		command:"fsreadDirSync",
+		dir:directory
+	}));
+	window.fileThing = function (json) {callback(json.value);window.fileThing = function (json) {};}
 }
 reconnect()
 var dir = "";
@@ -93,10 +140,23 @@ document.getElementById("directory").onchange = function () {
 	terminalServer.send(JSON.stringify({
 		command:"getCurrentDir"
 	}));
+	updateDirectorys();
 };
+function updateWindow() {
+	var children = document.getElementById("select").children;
+	var index = 0;
+	while (index < children.length) {
+		children[index].hidden = !(children[index].id == document.getElementById("options").value);
+		index += 1;
+	}
+}
+document.getElementById("options").onchange = () => {
+	updateWindow();
+};
+updateWindow();
 
 function checkPCOn() {
-	if (timer == 0 && terminalServer.OPEN == 1) {
+	if (timer == 0 && terminalServer.CONNECTING == 0) {
 		window.alert("gvbvdxxs pc has been disconnected or is not open right now (he may have it on but not the app to run the console commands)");
 	} else {
 		document.getElementById("FPS").innerHTML = "PC TCPS (tick calls per second): " + timer;
@@ -105,6 +165,39 @@ function checkPCOn() {
 	setTimeout(checkPCOn, 1000); //1000ms = 1 second
 }
 setTimeout(checkPCOn, 1000); //1000ms = 1 second
+function checkIsDir(dirname) {
+	return (dirname.split(".").pop() == dirname);
+} 
+function updateDirectorys() {
+	document.getElementById("fileData").innerHTML = "";
+	getDir("./", function (data) {
+		var index = 0;
+		while (index < data.length) {
+			var p = document.createElement("p");
+			if (checkIsDir(data[index])) {
+				p.innerHTML = "directory: "+data[index]+"<br>";
+			} else {
+				p.innerHTML = data[index]+"<br>";
+				p.setAttribute("file", data[index]);
+				p.onclick = function () {
+					var file = this.getAttribute("file");
+					getFile(file,"base64",function (data) {
+						var blob = new Blob([btoa(data)]);
+						var a = document.createElement("a");
+						a.href = URL.createObjectURL(blob);
+						a.download = file;
+						a.click();
+					})
+				};	
+				//p.style.color = "blue";
+				p.setAttribute("class","file");
+			}
+			
+			document.getElementById("fileData").appendChild(p);
+			index += 1;
+		}
+	})
+}
 </script>
 
 </body>

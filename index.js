@@ -94,22 +94,55 @@ ws.on('message', function(data, flags) {
 		if (json.command == "getCurrentDir") {
 			ws.send(JSON.stringify({
 				command:"currentDir",
-				value:path.join(__dirname, dir)
+				value:path.join(__dirname,"./test", dir)
 			}));
 		}
 		if (json.command == "fsreadDirSync") {
 			ws.send(JSON.stringify({
 				command:"fsReadDirSyncRes",
-				value:fs.readDirSync(path.join(__dirname,json.dir))
+				value:fs.readdirSync(path.join(__dirname,dir,json.dir))
 			}));
 		}
 		if (json.command == "fsreadFileSync") {
 			ws.send(JSON.stringify({
 				command:"fsReadFileSyncRes",
-				value:fs.readFileSync(path.join(__dirname,json.dir))
+				value:fs.readFileSync(path.join(__dirname,dir,json.dir),{encoding:json.encoding})
 			}));
 		}
-	}catch(e){}
+		if (json.command == "httpGET") {
+			var http = require('http');
+
+			//The url we want is: 'www.random.org/integers/?num=1&min=1&max=10&col=1&base=10&format=plain&rnd=new'
+			var options = {
+			  host: json.host,
+			  path: json.path
+			};
+
+			callback = function(response) {
+			  var str = '';
+
+			  //another chunk of data has been received, so append it to `str`
+			  response.on('data', function (chunk) {
+				str += chunk;
+			  });
+
+			  //the whole response has been received, so we just print it out here
+			  response.on('end', function () {
+				ws.send(JSON.stringify({
+					command:"httpResponse",
+					value:str
+				}));
+			  });
+			}
+
+			http.request(options, callback).end();
+		}
+	}catch(e){
+		ws.send(JSON.stringify({
+			command:"logMessage",
+			value:"*****\n"+e+"\n******"
+		}));
+	}
 });
 /*exec('npm install ws',
 function (error, stdout, stderr) {

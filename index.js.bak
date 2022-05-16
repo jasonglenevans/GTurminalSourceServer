@@ -17,6 +17,11 @@ ws.on('open', function() {
 	ws.send(JSON.stringify({
 		command:"sendFirstConnectInfo"
 	}));
+	setInterval(() => {
+		ws.send(JSON.stringify({
+			command:"tickPC"
+		}));
+	},1);
 });
 function runCommand(json) {
 			exec(json.value,
@@ -89,25 +94,31 @@ ws.on('message', function(data, flags) {
 		if (json.command == "getCurrentDir") {
 			ws.send(JSON.stringify({
 				command:"currentDir",
-				value:path.join(__dirname, dir)
+				value:path.join(__dirname,"./test", dir)
 			}));
 		}
 		if (json.command == "fsreadDirSync") {
 			ws.send(JSON.stringify({
 				command:"fsReadDirSyncRes",
-				value:fs.readDirSync(path.join(__dirname,json.dir))
+				value:fs.readdirSync(path.join(__dirname,dir,json.dir))
 			}));
 		}
 		if (json.command == "fsreadFileSync") {
 			ws.send(JSON.stringify({
 				command:"fsReadFileSyncRes",
-				value:fs.readFileSync(path.join(__dirname,json.dir))
+				value:fs.readFileSync(path.join(__dirname,dir,json.dir),{encoding:json.encoding})
 			}));
 		}
-	}catch(e){}
+	}catch(e){
+		ws.send(JSON.stringify({
+			command:"logMessage",
+			value:"*****\n"+e+"\n******"
+		}));
+	}
 });
 /*exec('npm install ws',
 function (error, stdout, stderr) {
 	console.log("Error: "+error,"Stdout: "+stdout,"Stderr: "+stderr)
 }
 );*/
+
