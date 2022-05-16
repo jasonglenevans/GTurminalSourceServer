@@ -11,25 +11,90 @@
 .file:hover {
 	color:purple;
 }
-
+.selectObj {
+	cursor:pointer;
+	width:200px;
+}
+.selectObj:hover {
+	background:#495057;
+}
+.selection:hover {
+	cursor:pointer;
+	background:#495057;
+}
+    .context-menu {
+        position: absolute;
+        text-align: center;
+        background: lightgray;
+        border: 1px solid black;
+    }
+  
+    .context-menu ul {
+        padding: 0px;
+        margin: 0px;
+        min-width: 150px;
+        list-style: none;
+    }
+  
+    .context-menu ul li {
+        padding-bottom: 7px;
+        padding-top: 7px;
+        border: 1px solid black;
+		cursor:pointer;
+    }
+  
+    .context-menu ul li a {
+        text-decoration: none;
+        color: black;
+    }
+  
+    .context-menu ul li:hover {
+        background: darkgray;
+    }
 </style>
 
 </head>
 
 
 <body style="background:grey;font-family:arial;">
+<select id="options" style="font-size:30px;background:grey;color:white;" hidden>
+<option value="terminal">terminal</option>
+<option value="files">files</option>
+</select>
+<div id="optionsNew" class="selection" onclick="document.getElementById('optionsNewSelect').hidden = false;" style="border-radius:8px;text-align:center;font-size:20px;background:#868e96;color:white;width:200px;height:32px;border-style:solid;border-color:#343a40;border-width:1px;">
+	<b style="margin-top:5px;display:block;">Change Window</b>
+</div>
+<div id="optionsNewSelect" style="border-radius:8px;text-align:center;font-size:20px;background:#868e96;color:white;width:200px;height:150px;border-style:solid;border-color:#343a40;border-width:1px;overflow-y:auto;overflow-x:hidden;">
+	<div class="selectObj" value="terminal" >Terminal</b></div>
+	<div class="selectObj" value="files" >File Manager</b></div>
+</div>
+<script>
+
+var optionsNewSelect = document.getElementById("optionsNewSelect");
+var optionsNewBounding = document.getElementById("optionsNew").getBoundingClientRect();
+optionsNewSelect.style.top = optionsNewBounding.top+"px";
+optionsNewSelect.style.left = optionsNewBounding.left+"px";
+optionsNewSelect.style.position = "absolute";
+optionsNewSelect.hidden = true;
+var index = 0;
+while (optionsNewSelect.children.length > index) {
+	optionsNewSelect.children[index].onclick = function () {
+		document.getElementById('options').value = this.getAttribute('value');document.getElementById('options').onchange();document.getElementById('optionsNewSelect').hidden = true;
+	};
+	index += 1;
+}
+</script>
 <center>
 <div style="width:100%;height:calc(100vh - 180px);" id="select">
 <textarea disabled id="terminal" hidden style="width:100%;height:100%;background:black;color:white;resize:none;">
-welcome to my termial, if something does not work, i dont have my pc currently on.
-the terminal will not do things like npm, so users cannot write files or destroy my pc.
-also wait a bit, if nothing happens or you can type stuff but it does not work, it can still be connecting to the server.
-also if the pc TCPS is 0 for a while, then it means im also not open rn.
+welcome to my termial!
+to get started, run this command: help
+btw if it says thinking... for a while, im working on it, or my pc is off.
+please do not destory my pc.
 </textarea>
 <div id="files" style="width:100%;height:100%;background:white;color:black;">
-<h1>Files</h1><br>
 <button onclick="selectFile();">Upload</button><br>
-<div style="width:100%;height:70%;overflow-y:scroll;" id="fileData"></div>
+<div style="width:100%;height:95%;overflow-y:scroll;oveflow-x:none;" id="fileData"></div>
 </div>
 </div>
 <br>
@@ -39,25 +104,31 @@ also if the pc TCPS is 0 for a while, then it means im also not open rn.
 <label for="directory">directory</label>
 <input type="text" id="directory" value="./">
 <br><br>
-<select id="options">
-<option value="terminal">terminal</option>
-<option value="files">files</option>
-</select>
-<br><br>
 <b id="FPS"></b>
 </center>
 
+<div id="contextMenu" class="context-menu" 
+    style="display: none">
+    <ul>
+        <li><a href="#" id="fileDelete">Delete File</a></li>
+    </ul>
+</div>
 <script>
-var terminalServer = null;
+window.terminalServer = null;
 var timer = 0;
 var file = null;
 window.fileThing = function () {}
+window.cxtMenuScope = null;
 function reconnect() {
-	terminalServer = new WebSocket("wss://deciduous-flame-canidae.glitch.me");
+	window.terminalServer = new WebSocket("wss://deciduous-flame-canidae.glitch.me");
 	terminalServer.onclose = reconnect;
 	terminalServer.onopen = function () {
 		terminalServer.send(JSON.stringify({
 			command:"getCurrentDir"
+		}));
+		terminalServer.send(JSON.stringify({
+			command:"setDir",
+			value:"./"
 		}));
 		updateDirectorys();
 	};
@@ -98,6 +169,9 @@ function reconnect() {
 		if (json.command == "fsReadDirSyncRes") {
 			fileThing(json);
 		}
+		if (json.command == "refreshFiles") {
+			updateDirectorys();
+		}
 	});
 }
 function getFile(directory,encoding,callback) {
@@ -124,12 +198,25 @@ function saveFile(directory,encoding,data) {
 	}));
 	window.fileThing = function (json) {window.fileThing = function (json) {};}
 }
+var lastPath = [];
 function goToDir(gdir) {
-	if (document.getElementById("directory").value[document.getElementById("directory").value.length-1] == "/" || document.getElementById("directory").value[document.getElementById("directory").value.length-1] == "\\") {
-		document.getElementById("directory").value = document.getElementById("directory").value.concat(gdir);
-	} else {
-		document.getElementById("directory").value = document.getElementById("directory").value.concat(gdir.concat("/"));
+	lastPath.push(document.getElementById("directory").value);
+	
+	document.getElementById("directory").value = document.getElementById("directory").value += "/"+gdir;
+	document.getElementById("directory").onchange();
+}
+function goBackDir(path) {
+	document.getElementById("directory").value = lastPath.join("/");
+	delete lastPath[lastPath.length-1];
+	var index = 0;
+	var otherPath = [];
+	while (index < lastPath.length) {
+		if (lastPath[index]) {
+			otherPath.push(lastPath[index]);
+		}
+		index += 1;
 	}
+	lastPath = otherPath;
 	document.getElementById("directory").onchange();
 }
 reconnect()
@@ -159,6 +246,9 @@ document.getElementById("directory").onchange = function () {
 		command:"getCurrentDir"
 	}));
 	updateDirectorys();
+};
+document.getElementById("directory").oninput = function () {
+	lastPath = [];
 };
 function updateWindow() {
 	var children = document.getElementById("select").children;
@@ -193,22 +283,32 @@ function updateDirectorys() {
 		var p = document.createElement("p");
 		p.innerHTML = "<h1>"+dir+"</h1><br>";
 		document.getElementById("fileData").appendChild(p);
+		p.oncontextmenu = function(e){e.preventDefault()};
 		var p = document.createElement("p");
 		p.innerHTML = "go back directory";
 		p.setAttribute("class","file");
 		p.onclick = function () {
-			var file = this.getAttribute("file");
-			goToDir("../");
+			goBackDir();
 		};
+		p.oncontextmenu = function(e){e.preventDefault()};
 		document.getElementById("fileData").appendChild(p);
 		while (index < data.length) {
 			var p = document.createElement("p");
 			p.setAttribute("file", data[index]);
+			p.oncontextmenu = function(e){e.preventDefault()};
 			if (checkIsDir(data[index])) {
 				p.innerHTML = "directory: "+data[index]+"<br>";
 				p.onclick = function () {
 					var file = this.getAttribute("file");
 					goToDir(file);
+				};
+				p.oncontextmenu = function (e) {
+						console.log("Sending Delete...");
+						terminalServer.send(JSON.stringify({
+							command:'deleteDir',
+							dir:this.getAttribute('file')
+						}));
+						e.preventDefault();
 				};
 			} else {
 				p.innerHTML = "file: "+data[index]+"<br>";
@@ -220,7 +320,15 @@ function updateDirectorys() {
 						a.download = file;
 						a.click();
 					})
-				};	
+				};
+				p.oncontextmenu = function (e) {
+						console.log("Sending Delete...");
+						terminalServer.send(JSON.stringify({
+							command:'deleteFile',
+							dir:this.getAttribute('file')
+						}));
+						e.preventDefault();
+				};
 				//p.style.color = "blue";
 			}
 			p.setAttribute("class","file");
