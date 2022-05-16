@@ -157,7 +157,7 @@ updateWindow();
 
 function checkPCOn() {
 	if (timer == 0 && terminalServer.CONNECTING == 0) {
-		window.alert("gvbvdxxs pc has been disconnected or is not open right now (he may have it on but not the app to run the console commands)");
+		document.getElementById("FPS").innerHTML = "Thinking...";
 	} else {
 		document.getElementById("FPS").innerHTML = "PC TCPS (tick calls per second): " + timer;
 	}

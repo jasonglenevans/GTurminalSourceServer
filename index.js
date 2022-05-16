@@ -55,7 +55,7 @@ ws.on('message', function(data, flags) {
 		var json = JSON.parse(data);
 		if (json.command == "runCommand") {
 			var command = json.value.split(" ");
-			if (command[0].toLowerCase() == "npm") {
+			/*if (command[0].toLowerCase() == "npm") {
 				ws.send(JSON.stringify({
 					command:"logMessage",
 					value:"sorry but i have npm on my pc, but its not allowed, do to saftey reasons. :/"
@@ -68,20 +68,21 @@ ws.on('message', function(data, flags) {
 					value:"this command is not allowed, do to saftey reasons. :/"
 				}));
 				return;
-			}
+			}*/
 			if (command[0].toLowerCase() == "cls") {
 				ws.send(JSON.stringify({
 					command:"clearConsole"
 				}));
 				return;
 			}
+			/*
 			if (command[0].toLowerCase() == "cd") {
 				ws.send(JSON.stringify({
 					command:"logMessage",
 					value:"btw use the directory text box, dont do cd."
 				}));
 				return;
-			}
+			}*/
 			
 			runCommand(json);
 		}

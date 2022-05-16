@@ -182,9 +182,8 @@ function updateDirectorys() {
 				p.onclick = function () {
 					var file = this.getAttribute("file");
 					getFile(file,"base64",function (data) {
-						var blob = new Blob([btoa(data)]);
 						var a = document.createElement("a");
-						a.href = URL.createObjectURL(blob);
+						a.href = "data:text/plain;charset=utf-8;base64,"+data;
 						a.download = file;
 						a.click();
 					})
