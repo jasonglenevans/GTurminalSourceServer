@@ -7,12 +7,13 @@
 </head>
 
 
-<body style="background:grey;">
+<body style="background:grey;font-family:arial;">
 <center>
-<textarea disabled id="terminal" style="width:100%;height:calc(100vh - 100px);background:black;color:white;resize:none;">
+<textarea disabled id="terminal" style="width:100%;height:calc(100vh - 130px);background:black;color:white;resize:none;">
 welcome to my termial, if something does not work, i dont have my pc currently on.
 the terminal will not do things like npm, so users cannot write files or destroy my pc.
 also wait a bit, if nothing happens or you can type stuff but it does not work, it can still be connecting to the server.
+also if the pc fps is 0 for a while, then it means im also not open rn.
 </textarea>
 <br>
 <input type="text" id="command">
@@ -20,10 +21,13 @@ also wait a bit, if nothing happens or you can type stuff but it does not work, 
 <br><br>
 <label for="directory">directory</label>
 <input type="text" id="directory" value="./">
+<br><br>
+<b id="FPS"></b>
 </center>
 
 <script>
 var terminalServer = null;
+var timer = 0;
 function reconnect() {
 	terminalServer = new WebSocket("wss://deciduous-flame-canidae.glitch.me");
 	terminalServer.onclose = reconnect;
@@ -32,34 +36,39 @@ function reconnect() {
 			command:"getCurrentDir"
 		}));
 	};
+	terminalServer.onmessage = (event) => {
+		var json = JSON.parse(event.data);
+		if (json.command == "clearConsole") {
+			document.getElementById("terminal").value = "";
+		}
+		if (json.command == "logMessage") {
+			if (!(json.value == "[object Object]")) {
+				document.getElementById("terminal").value += "\n"+json.value;
+				document.getElementById("terminal").scrollTo(0,document.getElementById("terminal").scrollHeight);
+			}
+		}
+		if (json.command == "setDir") {
+			document.getElementById("directory").value = json.value;
+		}
+		if (json.command == "currentDir") {
+			dir = json.value;
+		}
+		if (json.command == "sendFirstConnectInfo") {
+			terminalServer.send(JSON.stringify({
+				command:"setDir",
+				value:document.getElementById("directory").value
+			}));
+			terminalServer.send(JSON.stringify({
+				command:"getCurrentDir"
+			}));
+		}
+		if (json.command == "tickPC") {
+			timer += 1;
+		}
+	};
 }
 reconnect()
 var dir = "";
-
-terminalServer.onmessage = (event) => {
-	var json = JSON.parse(event.data);
-	if (json.command == "clearConsole") {
-		document.getElementById("terminal").value = "";
-	}
-	if (json.command == "logMessage") {
-		if (!(json.value == "[object Object]")) {
-			document.getElementById("terminal").value += "\n"+json.value;
-			document.getElementById("terminal").scrollTo(0,document.getElementById("terminal").scrollHeight);
-		}
-	}
-	if (json.command == "setDir") {
-		document.getElementById("directory").value = json.value;
-	}
-	if (json.command == "currentDir") {
-		dir = json.value;
-	}
-	if (json.command == "sendFirstConnectInfo") {
-		terminalServer.send(JSON.stringify({
-			command:"setDir",
-			value:document.getElementById("directory").value
-		}));
-	}
-};
 document.getElementById("send").onclick = function () {
 	terminalServer.send(JSON.stringify({
 		command:"logMessage",
@@ -81,7 +90,21 @@ document.getElementById("directory").onchange = function () {
 		command:"setDir",
 		value:document.getElementById("directory").value
 	}));
+	terminalServer.send(JSON.stringify({
+		command:"getCurrentDir"
+	}));
 };
+
+function checkPCOn() {
+	if (timer == 0 && terminalServer.OPEN == 1) {
+		window.alert("gvbvdxxs pc has been disconnected or is not open right now (he may have it on but not the app to run the console commands)");
+	} else {
+		document.getElementById("FPS").innerHTML = "PC TCPS (tick calls per second): " + timer;
+	}
+	timer = 0;
+	setTimeout(checkPCOn, 1000); //1000ms = 1 second
+}
+setTimeout(checkPCOn, 1000); //1000ms = 1 second
 </script>
 
 </body>
